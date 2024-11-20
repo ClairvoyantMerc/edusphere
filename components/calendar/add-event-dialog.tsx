@@ -1,5 +1,8 @@
 "use client"
 
+import * as React from "react"
+import { format } from "date-fns"
+import { CalendarIcon, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -19,90 +22,168 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { CalendarComponent } from "./calendar"
-import { useState } from "react"
-import { PlusCircle } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { CalendarEvent, EventCategory, EVENT_CATEGORIES } from "@/types/calendar"
+import { v4 as uuidv4 } from 'uuid'
 
-export function AddEventDialog() {
-  const [date, setDate] = useState<Date>()
+interface AddEventDialogProps {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  onEventAdd?: (event: CalendarEvent) => void
+}
+
+export function AddEventDialog({ open, onOpenChange, onEventAdd }: AddEventDialogProps) {
+  const [title, setTitle] = React.useState("")
+  const [description, setDescription] = React.useState("")
+  const [date, setDate] = React.useState<string>("")
+  const [startTime, setStartTime] = React.useState("")
+  const [endTime, setEndTime] = React.useState("")
+  const [location, setLocation] = React.useState("")
+  const [category, setCategory] = React.useState<EventCategory>(EventCategory.CLASS)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!title || !date || !startTime || !endTime || !category) return
+
+    const [year, month, day] = date.split('-').map(Number)
+    const [startHour, startMinute] = startTime.split(':').map(Number)
+    const [endHour, endMinute] = endTime.split(':').map(Number)
+
+    const event: CalendarEvent = {
+      id: uuidv4(),
+      title,
+      description: description || undefined,
+      startTime: new Date(year, month - 1, day, startHour, startMinute),
+      endTime: new Date(year, month - 1, day, endHour, endMinute),
+      location: location || undefined,
+      category
+    }
+
+    onEventAdd?.(event)
+    resetForm()
+  }
+
+  const resetForm = () => {
+    setTitle("")
+    setDescription("")
+    setDate("")
+    setStartTime("")
+    setEndTime("")
+    setLocation("")
+    setCategory(EventCategory.CLASS)
+  }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
+        <Button
+          variant="default"
+          size="sm"
+          className="h-8 bg-primary hover:bg-primary/90"
+        >
+          <Plus className="h-4 w-4 mr-1" />
           Add Event
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Add New Event</DialogTitle>
-          <DialogDescription>
-            Create a new event in the school calendar.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="title" className="text-right">
-              Title
-            </Label>
-            <Input
-              id="title"
-              placeholder="Event title"
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="category" className="text-right">
-              Category
-            </Label>
-            <Select>
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="test">Test & Exam</SelectItem>
-                <SelectItem value="class">Class</SelectItem>
-                <SelectItem value="meeting">Meeting</SelectItem>
-                <SelectItem value="activity">Activity</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">Date</Label>
-            <div className="col-span-3">
-              <CalendarComponent
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                className="rounded-md border"
+      <DialogContent className="sm:max-w-[500px]">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Add Event</DialogTitle>
+            <DialogDescription>
+              Add a new event to your calendar
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Event title"
+                className="w-full"
+                required
               />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Event description"
+                className="w-full"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="start-time">Start Time</Label>
+                <Input
+                  id="start-time"
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-full"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="end-time">End Time</Label>
+                <Input
+                  id="end-time"
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full"
+                  required
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Event location"
+                className="w-full"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="category">Category</Label>
+              <Select value={category} onValueChange={(value) => setCategory(value as EventCategory)} required>
+                <SelectTrigger id="category" className="w-full">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EVENT_CATEGORIES.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${category.color}`} />
+                        <span>{category.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="time" className="text-right">
-              Time
-            </Label>
-            <Input
-              id="time"
-              type="time"
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="description" className="text-right">
-              Description
-            </Label>
-            <Input
-              id="description"
-              placeholder="Event description"
-              className="col-span-3"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="submit">Add Event</Button>
-        </DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="submit">Add Event</Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
